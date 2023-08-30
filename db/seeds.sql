@@ -1,25 +1,28 @@
-INSERT INTO department (dep_name)
+INSERT INTO era (name)
 VALUES ("Fall of the Jedi"),
-       ("Rise of the First Order"),
-       ("Clone Wars"),
-       ("Age of Rebellion");
+       ("Reign of the Empire"),
+       ("Age of Rebellion"),
+       ("The New Republic");
 
-INSERT INTO roles (title, salary, department_id)
+INSERT INTO roles (title, salary, era_id)
 VALUES ("Jedi Master", 100000, 1),
-       ("Jedi Knight", 50000, 1),
-       ("Last Jedi Master", 120000, 2),
-       ("Padawan", 65000, 2),
-       ("General", 150000, 3),
-       ("Jedi Padawan", 90000, 3),
-       ("Emperor", 125000, 4),
-       ("Sith Lord", 80000, 4);
+       ("Jedi Padawan", 50000, 1),
+       ("Jedi Master", 100000, 2),
+       ("Jedi Padawan", 50000, 2),
+       ("Jedi Master", 100000, 3),
+       ("Jedi Padawan", 50000, 3),
+       ("Jedi Master", 100000, 4),
+       ("Jedi Padawan", 50000, 4);
+    
 
-INSERT INTO employee (first_name, last_name, role_id, manager_id)
+
+
+INSERT INTO jedi (first_name, last_name, role_id, master_id)
 VALUES ("Qui-Gon", "Jinn", 1, NULL),
        ("Obi-Wan", "Kenobi", 2, 1),
-       ("Luke", "Skywalker", 3, NULL),
-       ("Kylo", "Ren", 4, 3),
+       ("Master", "Yoda", 3, NULL),
+       ("Luke", "Skywalker", 4, 3),
        ("Anakin", "Skywalker", 5, NULL),
        ("Ahsoka", "Tano", 6, 5),
-       ("Lord", "Palpatine", 7, NULL),
+       ("Mace", "Windu", 7, NULL),
        ("Darth", "Vader", 8, 7);            
