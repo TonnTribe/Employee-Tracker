@@ -1,6 +1,7 @@
 const { prompt } = require('inquirer');
 const logo = require('asciiart-logo');
 const db = require('./db');
+require('dotenv').config();
 require('console.table');
 
 init();
@@ -114,37 +115,37 @@ async function loadMainPrompts() {
 }
 
 async function viewJedi() {
-    const jedi = await db.findAllJedi();
-
-    console.log("\n");
-    console.table(jedi);
-
-    loadMainPrompts();
+    await db.findAllJedi()
+    .then(([rows]) => {
+        let jedi = rows;
+        console.log("\n");
+        console.table(jedi);
+    })
+    .then(() => loadMainPrompts());
 }
 
 async function viewRoles() {
-    const roles = await db.findAllRoles();
-
-    console.log("\n");
-    console.table(roles);
-
-    loadMainPrompts();
+    await db.findAllRoles()
+    .then(([rows]) => {
+        let roles = rows;
+        console.log("\n");
+        console.table(roles);
+    })
+    .then(() => loadMainPrompts());
 }
 
 async function viewEras() {
-    const eras = await db.findAllEras();
-
-    console.log("\n");
-    console.table(eras);
-
-    loadMainPrompts();
+    await db.findAllEras()
+    .then(([rows]) => {
+        let eras = rows;
+        console.log("\n");
+        console.table(eras);
+    })
+    .then (() => loadMainPrompts());
 }
 
 async function addJedi() {
-    const roles = await db.findAllRoles();
-    const masters = await db.findAllJedi();
-
-    const jedi = await prompt([
+    await prompt([
         {
             name: "first_name",
             message: "What is the Jedi's first name?"
@@ -152,38 +153,74 @@ async function addJedi() {
         {
             name: "last_name",
             message: "What is the Jedi's last name?"
-        },
-        {
-            type: "list",
-            name: "role_id",
-            message: "What is the Jedi's role?",
-            choices: roles.map(role => ({
-                name: role.title,
-                value: role.id
-            }))
-        },
-        {
-            type: "list",
-            name: "master_id",
-            message: "Who is the Jedi's master?",
-            choices: masters.map(master => ({
-                name: `${master.first_name} ${master.last_name}`,
-                value: master.id
-            }))
         }
-    ]);
+    ])
+    .then(res => {
+        let first_name = res.first_name;
+        let last_name = res.last_name;
 
-    await db.createJedi(jedi);
+        db.findAllRoles()
+        .then(([rows]) => {
+            let roles = rows;
+            const roleChoices = roles.map(({ id, title }) => ({
+                name: title,
+                value: id
+            }));
 
-    console.log(`Added ${jedi.first_name} ${jedi.last_name} to the database`);
+            prompt({
+                type: "list",
+                name: "role_id",
+                message: "What is the Jedi's role?",
+                choices: roleChoices
+            })
+            .then(res => {
+                let role_id = res.role_id;
 
-    loadMainPrompts();
-}
+                db.findAllJedi()
+                .then(([rows]) => {
+                    let jedi = rows;
+                    const masterChoices = jedi.map(({ id, first_name, last_name }) => ({
+                        name: `${first_name} ${last_name}`,
+                        value: id
+                    }));
+
+                    prompt({
+                        type: "list",
+                        name: "master_id",
+                        message: "Who is the Jedi's master?",
+                        choices: masterChoices
+                    })
+                    .then(res => {
+                        let master_id = res.master_id;
+
+                        const jedi = {
+                            first_name,
+                            last_name,
+                            role_id,
+                            master_id
+                        }
+
+                        db.createJedi(jedi);
+                    })    
+                        .then (() => console.log(`Added ${first_name} ${last_name} to the database`))
+
+                        .then (() => loadMainPrompts());
+                    })
+                })
+            })
+        })
+    }
 
 async function addRole() {
-    const eras = await db.findAllEras();
+    db.findAllEras()
+    .then(([rows]) => {
+        let eras = rows;
+        const eraChoices = eras.map(({ id, name }) => ({
+            name: name,
+            value: id
+        }));
 
-    const role = await prompt([
+        prompt([
         {
             name: "title",
             message: "What is the role's title?"
@@ -196,162 +233,184 @@ async function addRole() {
             type: "list",
             name: "era_id",
             message: "Which era does the role belong to?",
-            choices: eras.map(era => ({
-                name: era.name,
-                value: era.id
-            }))
-        }
-    ]);
-
-    await db.createRole(role);
-
-    console.log(`Added ${role.title} to the database`);
-
-    loadMainPrompts();
+            choices: eraChoices
+            }
+        ])
+        .then(role => {
+            db.createRole(role)
+            .then (() => console.log(`Added ${role.title} to the database`))
+            .then (() => loadMainPrompts());
+        })
+    })
 }
 
 async function addEra() {
-    const era = await prompt([
+    await prompt([
         {
             name: "name",
             message: "What is the era's name?"
         }
-    ]);
-
-    await db.createEra(era);
-
-    console.log(`Added ${era.name} to the database`);
-
-    loadMainPrompts();
+    ])
+    .then(era => {
+        db.createEra(era)
+        .then (() => console.log(`Added ${era.name} to the database`))
+        .then (() => loadMainPrompts());
+    })
 }
 
 async function updateJediRole() {
-    const jedi = await db.findAllJedi();
-    const roles = await db.findAllRoles();
+    db.findAllJedi()
+    .then(([rows]) => {
+        let jedi = rows;
+        const jediChoices = jedi.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
 
-    const jediRole = await prompt([
-        {
-            type: "list",
-            name: "id",
-            message: "Which Jedi's role do you want to update?",
-            choices: jedi.map(jedi => ({
-                name: `${jedi.first_name} ${jedi.last_name}`,
-                value: jedi.id
-            }))
-        },
-        {
-            type: "list",
-            name: "role_id",
-            message: "Which role do you want to assign the Jedi?",
-            choices: roles.map(role => ({
-                name: role.title,
-                value: role.id
-            }))
-        }
-    ]);
+        prompt([
+            {
+                type: "list",
+                name: "id",
+                message: "Which Jedi's role do you want to update?",
+                choices: jediChoices
+            }
+        ])
+        .then(res => {
+            let jedi_id = res.id;
+            db.findAllRoles()
+            .then(([rows]) => {
+                let roles = rows;
+                const roleChoices = roles.map(({ id, title }) => ({
+                    name: title,
+                    value: id
+                }));
 
-    await db.updateJediRole(jediRole.id, jediRole.role_id);
-
-    console.log("Updated Jedi's role");
-
-    loadMainPrompts();
+                prompt([
+                    {
+                        type: "list",
+                        name: "role_id",
+                        message: "Which role do you want to assign the Jedi?",
+                        choices: roleChoices
+                    }
+                ])
+                .then(res => db.updateJediRole(jedi_id, res.role_id))
+                .then (() => console.log("Updated Jedi's role"))
+                .then (() => loadMainPrompts());
+            });
+        });
+    })
 }
 
 async function updateJediMaster() {
-    const jedi = await db.findAllJedi();
+    db.findAllJedi()
+    .then(([rows]) => {
+        let jedi = rows;
+        const jediChoices = jedi.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
 
-    const jediMaster = await prompt([
-        {
-            type: "list",
-            name: "id",
-            message: "Which Jedi's master do you want to update?",
-            choices: jedi.map(jedi => ({
-                name: `${jedi.first_name} ${jedi.last_name}`,
-                value: jedi.id
-            }))
-        },
-        {
-            type: "list",
-            name: "master_id",
-            message: "Which Jedi do you want to set as master for the Jedi?",
-            choices: jedi.map(master => ({
-                name: `${master.first_name} ${master.last_name}`,
-                value: master.id
-            }))
-        }
-    ]);
+        prompt([
+            {
+                type: "list",
+                name: "id",
+                message: "Which Jedi's master do you want to update?",
+                choices: jediChoices
+            }
+        ])
+        .then(res => {
+            let jedi_id = res.id;
+            db.findAllJedi()
+            .then(([rows]) => {
+                let masters = rows;
+                const masterChoices = masters.map(({ id, first_name, last_name }) => ({
+                    name: `${first_name} ${last_name}`,
+                    value: id
+                }));
 
-    await db.updateJediMaster(jediMaster.id, jediMaster.master_id);
-
-    console.log("Updated Jedi's master");
-
-    loadMainPrompts();
+                prompt([
+                    {
+                        type: "list",
+                        name: "master_id",
+                        message: "Which Jedi do you want to assign as the master?",
+                        choices: masterChoices
+                    }
+                ])
+                .then(res => db.updateJediMaster(jedi_id, res.master_id))
+                .then (() => console.log("Updated Jedi's master"))
+                .then (() => loadMainPrompts());
+            });
+        });
+    })
 }
 
 async function removeJedi() {
-    const jedi = await db.findAllJedi();
+    db.findAllJedi()
+    .then(([rows]) => {
+        let jedi = rows;
+        const jediChoices = jedi.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
 
-    const jediChoice = await prompt([
-        {
-            type: "list",
-            name: "id",
-            message: "Which Jedi do you want to remove?",
-            choices: jedi.map(jedi => ({
-                name: `${jedi.first_name} ${jedi.last_name}`,
-                value: jedi.id
-            }))
-        }
-    ]);
-
-    await db.removeJedi(jediChoice.id);
-
-    console.log("Removed Jedi from the database");
-
-    loadMainPrompts();
+        prompt([
+            {
+                type: "list",
+                name: "id",
+                message: "Which Jedi do you want to remove?",
+                choices: jediChoices
+            }
+        ])
+        .then(res => db.removeJedi(res.id))
+        .then (() => console.log("Removed Jedi from the database"))
+        .then (() => loadMainPrompts());
+    })
 }
 
 async function removeRole() {
-    const roles = await db.findAllRoles();
+    db.findAllRoles()
+    .then(([rows]) => {
+        let roles = rows;
+        const roleChoices = roles.map(({ id, title }) => ({
+            name: title,
+            value: id
+        }));
 
-    const roleChoice = await prompt([
-        {
-            type: "list",
-            name: "id",
-            message: "Which role do you want to remove?",
-            choices: roles.map(role => ({
-                name: role.title,
-                value: role.id
-            }))
-        }
-    ]);
-
-    await db.removeRole(roleChoice.id);
-
-    console.log("Removed role from the database");
-
-    loadMainPrompts();
+        prompt([
+            {
+                type: "list",
+                name: "id",
+                message: "Which role do you want to remove?",
+                choices: roleChoices
+            }
+        ])
+        .then(res => db.removeRole(res.id))
+        .then (() => console.log("Removed role from the database"))
+        .then (() => loadMainPrompts());
+    })
 }
 
 async function removeEra() {
-    const eras = await db.findAllEras();
+    db.findAllEras()
+    .then(([rows]) => {
+        let eras = rows;
+        const eraChoices = eras.map(({ id, name }) => ({
+            name: name,
+            value: id
+        }));
 
-    const eraChoice = await prompt([
-        {
-            type: "list",
-            name: "id",
-            message: "Which era do you want to remove?",
-            choices: eras.map(era => ({
-                name: era.name,
-                value: era.id
-            }))
-        }
-    ]);
-
-    await db.removeEra(eraChoice.id);
-
-    console.log("Removed era from the database");
-
-    loadMainPrompts();
+        prompt([
+            {
+                type: "list",
+                name: "id",
+                message: "Which era do you want to remove?",
+                choices: eraChoices
+            }
+        ])
+        .then(res => db.removeEra(res.id))
+        .then (() => console.log("Removed era from the database"))
+        .then (() => loadMainPrompts());
+    })
 }
 
 function quit() {

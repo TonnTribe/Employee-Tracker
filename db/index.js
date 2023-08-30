@@ -1,4 +1,5 @@
 const connection = require('../config/connection');
+require('dotenv').config();
 
 class db {
     constructor(connection) {
@@ -8,8 +9,7 @@ class db {
     // Find all jedi, join with roles and eras to display their roles, salaries, eras, and masters
     findAllJedi() {
         return this.connection.promise().query(
-            "SELECT jedi.id, jedi.first_name, jedi.last_name, role.title, role.name AS role, role.salary, CONCAT(master.first_name, ' ', master.last_name) AS master FROM jedi LEFT JOIN role on jedi.role_id = role.id LEFT JOIN era on role.era_id = era.id LEFT JOIN jedi master on master.id = jedi.master_id;"
-        );
+            "SELECT jedi.id, jedi.first_name, jedi.last_name, role.title, role.salary, era.name AS era, CONCAT(master.first_name, ' ', master.last_name) AS master FROM jedi LEFT JOIN role on jedi.role_id = role.id LEFT JOIN era on role.era_id = era.id LEFT JOIN jedi master on jedi.master_id = master.id;");
     }
 
     // Find all jedi except the given jedi id
@@ -52,7 +52,7 @@ class db {
     // Find all roles, join with eras to display the era name
     findAllRoles() {
         return this.connection.promise().query(
-            "SELECT role.id, role.title, role.name AS role, role.salary, era.name AS era FROM role LEFT JOIN era on role.era_id = era.id;"
+            "SELECT role.id, role.title, role.salary, era.name AS era FROM role LEFT JOIN era on role.era_id = era.id;"
         );
     }
 
